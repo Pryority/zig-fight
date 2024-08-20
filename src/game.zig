@@ -6,8 +6,8 @@ const c = @cImport({
 const Window = @import("window.zig").Window;
 const Camera = @import("camera.zig").Camera;
 const PLAYER_HOR_SPD = 200.0;
-const PLAYER_JUMP_SPD = 400.0;
-const GRAVITY = 1000.0;
+const PLAYER_JUMP_SPD = 1000.0;
+const GRAVITY = 3000.0;
 
 pub const EnvItem = struct {
     rect: c.Rectangle,
@@ -15,12 +15,21 @@ pub const EnvItem = struct {
     color: c.Color,
 };
 
+const MovingDirection = enum {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    NEUTRAL
+};
+
 pub const Player = struct {
     position: c.Vector2,
     rect: c.Rectangle,
     speed: f32,
     canJump: bool,
-    canCrouch: bool
+    canCrouch: bool,
+    movingDirection: MovingDirection
 };
 
 const UpdateCameraFunction = *const fn (*Camera) void;
@@ -46,7 +55,8 @@ export fn gameInit() *anyopaque {
         .rect = c.Rectangle{ .x = @floatFromInt(@divExact(c.GetScreenWidth(), 2)), .y = @floatFromInt(@divExact(c.GetScreenHeight(), 2)), .width = 20, .height = 60 },
         .speed = 0,
         .canJump = false,
-        .canCrouch = false
+        .canCrouch = false,
+        .movingDirection = MovingDirection.NEUTRAL
     };
     var camera2D = c.Camera2D{
         .offset = c.Vector2{ .x = @floatFromInt(@divExact(c.GetScreenWidth(), 2)), .y = @floatFromInt(@divExact(c.GetScreenHeight(), 2))},
@@ -126,7 +136,7 @@ fn updatePlayer(player: *Player, delta: f32, envItems: []const EnvItem) void {
     if (c.IsKeyDown(c.KEY_D)) player.position.x += PLAYER_HOR_SPD * delta;
 
     // Jump
-    if (c.IsKeyPressed(c.KEY_W) and player.canJump) {
+    if (c.IsKeyDown(c.KEY_W) and player.canJump) {
         player.speed = -PLAYER_JUMP_SPD;
         player.canJump = false;
     }

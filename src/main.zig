@@ -4,9 +4,9 @@ const c = @cImport({
     @cInclude("raylib.h");
 });
 const GameState = @import("game.zig").GameState;
-
-const screen_w = 400;
-const screen_h = 200;
+const Player = @import("game.zig").Player;
+const Window = @import("window.zig").Window;
+const TARGET_FPS = 60;
 
 // The main exe doesn't know anything about the GameState structure
 // because that information exists inside the DLL, but it doesn't
@@ -21,17 +21,31 @@ var gameTick: *const fn(GameStatePtr) void = undefined;
 var gameDraw: *const fn(GameStatePtr) void = undefined;
 
 pub fn main() !void {
+    while(true) {
+        try runGame();
+
+        if (!shouldRestart()) {
+            break;
+        }
+    }
+}
+
+fn runGame() !void {
     loadGameLib() catch @panic("Failed to load libzigfight.dylib");
+    defer unloadGameLib() catch unreachable;
+
     const game_state = gameInit();
     // Align the pointer to the correct alignment for `GameState`
     const aligned_game_state = @as(*GameState,  @alignCast(@ptrCast(game_state)));
-
     // Access the allocator from the aligned `GameState`
     const allocator = aligned_game_state.allocator;
 
-    c.InitWindow(screen_w, screen_h, "Zig Hot-Reload");
-    c.SetTargetFPS(60);
+    Window.init();
+    defer c.CloseWindow();
+    c.SetTargetFPS(TARGET_FPS);
+
     while (!c.WindowShouldClose()) {
+        // Unload, Recompile and Reload Game Lib
         if (c.IsKeyPressed(c.KEY_R)) {
             unloadGameLib() catch unreachable;
             recompileGameLib(allocator) catch {
@@ -39,13 +53,17 @@ pub fn main() !void {
             };
             loadGameLib() catch @panic("Failed to load libzigfight.dylib");
             gameReload(game_state);
+            return;
         }
+
+        // Tick for State Transition
         gameTick(game_state);
+
+        // Draw Graphics
         c.BeginDrawing();
         gameDraw(game_state);
         c.EndDrawing();
     }
-    c.CloseWindow();
 }
 
 var game_dyn_lib: ?std.DynLib = null;
@@ -88,4 +106,8 @@ fn recompileGameLib(allocator: std.mem.Allocator) !void {
         },
         else => return
     }
+}
+
+fn shouldRestart() bool {
+    return c.IsKeyPressed(c.KEY_R);
 }

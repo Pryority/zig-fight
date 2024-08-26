@@ -36,30 +36,26 @@ pub const GameState = struct {
     allocator: std.mem.Allocator,
     player: Player,
     time: f32,
-    camera: *Camera,
+    camera: Camera,
     cameraDescriptions: []const []const u8,
     envItems: []const EnvItem,
 
     pub fn init() *GameState {
         var allocator = std.heap.c_allocator;
-        const player = Player.init();
-        std.debug.print("Player: {}\n", .{player});
-
-        // Check the alignment of the Player struct
-        std.debug.print("Player alignment: {}\n", .{@alignOf(Player)});
-        std.debug.print("allocator: {}\n", .{@TypeOf(allocator)});
-
-        var camera = Camera.init(player, @as(i32, c.GetScreenWidth()), @as(i32, c.GetScreenHeight()));
-        const game_state = allocator.create(GameState) catch {
+        var game_state = allocator.create(GameState) catch {
             std.debug.print("Failed to allocate GameState\n", .{});
             @panic("Out of memory.");
         };
+
+        game_state.player = Player.init();
+        game_state.camera = Camera.init(&game_state.player, @as(i32, c.GetScreenWidth()), @as(i32, c.GetScreenHeight()));
+
         std.debug.print("GameState alignment: {}\n", .{@alignOf(GameState)});
         game_state.* = GameState{
             .allocator = allocator,
-            .player = player,
+            .player = game_state.player,
             .time = 0,
-            .camera = &camera,
+            .camera = game_state.camera,
             .cameraDescriptions = CAMERA_DESCRIPTIONS,
             .envItems = &ENVIRONMENT_ITEMS,
         };
@@ -75,7 +71,7 @@ export fn gameReload(game_state_ptr: *anyopaque) void {
 export fn gameTick(state_ptr: *anyopaque) void {
     var state = @as(*GameState, @ptrCast(@alignCast(state_ptr)));
     const delta = c.GetFrameTime();
-
+    state.camera.updateCenter();
     state.time += delta;
     updatePlayer(&state.player, delta, &state.envItems);
 }
@@ -84,7 +80,7 @@ export fn gameDraw(state_ptr: *anyopaque) void {
     const state = @as(*GameState, @ptrCast(@alignCast(state_ptr)));
     const envItems = state.envItems;
 
-    state.camera.updateCenter();
+    c.BeginMode2D(state.camera.camera);
 
     for (envItems) |envItem| {
         c.DrawRectangleRec(envItem.rect, envItem.color);
@@ -93,6 +89,13 @@ export fn gameDraw(state_ptr: *anyopaque) void {
 
     // Draw Player
     c.DrawRectangleRec(state.player.rect, c.RED);
+
+    // Draw attack hitbox if it exists
+    if (state.player.currentHitbox) |hitbox| {
+        c.DrawRectangleRec(hitbox, if (state.player.isCrouching) c.ORANGE else c.BLUE);
+    }
+
+    c.EndMode2D();
 
     var time_text: [32]u8 = undefined;
     const time_slice = std.fmt.bufPrintZ(&time_text, "Time: {d:.2}", .{state.time}) catch "Error";
@@ -118,7 +121,7 @@ fn updatePlayer(player: *Player, delta: f32, envItems: *[]const EnvItem) void {
     player.handleCrouch();
 
     // Attack
-    player.handleAttack();
+    player.handleAttack(delta);
 
     // Apply gravity
     player.position.y += player.speed * delta;
@@ -138,7 +141,7 @@ fn updatePlayer(player: *Player, delta: f32, envItems: *[]const EnvItem) void {
                 player.speed = 0;
                 onGround = true;
                 player.canJump = true;
-                player.canCrouch = true;
+                // player.canCrouch = true;
             }
         }
     }

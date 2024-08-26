@@ -12,10 +12,10 @@ const TARGET_FPS = 60;
 // because that information exists inside the DLL, but it doesn't
 // need to care. All main cares about is where it exists in memory
 // so *anyopaque is just a pointer to a place in memory.
-const GameStatePtr = *anyopaque;
+const GameStatePtr = *GameState;
 
 // TODO: point these the relevant functions inside the game DLL.
-var gameInit: *const fn() GameStatePtr = undefined;
+// var gameInit: *const fn() GameStatePtr = undefined;
 var gameReload: *const fn(GameStatePtr) void = undefined;
 var gameTick: *const fn(GameStatePtr) void = undefined;
 var gameDraw: *const fn(GameStatePtr) void = undefined;
@@ -34,11 +34,10 @@ fn runGame() !void {
     loadGameLib() catch @panic("Failed to load libzigfight.dylib");
     defer unloadGameLib() catch unreachable;
 
-    const game_state = gameInit();
+    const game_state = GameState.init();
     // Align the pointer to the correct alignment for `GameState`
-    const aligned_game_state = @as(*GameState,  @alignCast(@ptrCast(game_state)));
     // Access the allocator from the aligned `GameState`
-    const allocator = aligned_game_state.allocator;
+    const allocator = game_state.allocator;
 
     Window.init();
     defer c.CloseWindow();
@@ -73,7 +72,6 @@ fn loadGameLib() !void {
         return error.OpenFail;
     };
     game_dyn_lib = dyn_lib;
-    gameInit = dyn_lib.lookup(@TypeOf(gameInit), "gameInit") orelse return error.LookupFail;
     gameReload = dyn_lib.lookup(@TypeOf(gameReload), "gameReload") orelse return error.LookupFail;
     gameTick = dyn_lib.lookup(@TypeOf(gameTick), "gameTick") orelse return error.LookupFail;
     gameDraw = dyn_lib.lookup(@TypeOf(gameDraw), "gameDraw") orelse return error.LookupFail;

@@ -10,7 +10,9 @@ pub const Player = struct {
     pub const HEIGHT = 60;
     pub const ATTACK_COOLDOWN = 0.25; // 500ms
     pub const JUMP_SPEED = 1000.0;
-    pub const ATTACK_DURATION = 0.15;
+    pub const ATTACK_DURATION = 0.20;
+    pub const INITIAL_HEALTH = 100;
+    health: i32,
     position: c.Vector2,
     rect: c.Rectangle,
     speed: f32,
@@ -30,7 +32,7 @@ pub const Player = struct {
         const SCREEN_BOTTOM_CENTER_Y = @as(f32, @floatFromInt(@divExact(c.GetScreenHeight(), 2)));
         const rect = c.Rectangle{ .x = SCREEN_CENTER_X, .y = SCREEN_BOTTOM_CENTER_Y, .width = WIDTH, .height = HEIGHT };
 
-        return Player{ .position = c.Vector2{ .x = 40, .y = 40 }, .rect = rect, .speed = 0, .canJump = false, .isCrouching = false, .canAttack = true, .isAttacking = false, .currentAttackTime = 0, .attackCooldown = Player.ATTACK_COOLDOWN, .movingDirection = Direction.NEUTRAL, .attackDirection = Direction.NEUTRAL, .punchHitbox = Hitbox{
+        return Player{ .health = INITIAL_HEALTH, .position = c.Vector2{ .x = 40, .y = 40 }, .rect = rect, .speed = 0, .canJump = false, .isCrouching = false, .canAttack = true, .isAttacking = false, .currentAttackTime = 0, .attackCooldown = Player.ATTACK_COOLDOWN, .movingDirection = Direction.NEUTRAL, .attackDirection = Direction.NEUTRAL, .punchHitbox = Hitbox{
             .x = 0,
             .y = 0,
             .width = Player.WIDTH,
@@ -91,7 +93,7 @@ pub const Player = struct {
                         .x = self.position.x,
                         .y = self.position.y + self.rect.height,
                         .width = self.rect.width,
-                        .height = size,
+                        .height = size / 2,
                     }
                 else
                     Hitbox{
@@ -160,6 +162,20 @@ pub const Player = struct {
     pub fn move(self: *Player, pos: c.Vector2) void {
         self.rect.x = pos.x;
         self.rect.y = pos.y + 0.0001;
+    }
+
+    pub fn draw(self: *const Player) void {
+        c.DrawRectangleRec(self.rect, c.RED);
+
+        // Draw health bar
+        const healthBarWidth = @as(f32, @floatFromInt(self.health)) / @as(f32, @floatFromInt(INITIAL_HEALTH)) * WIDTH;
+        const healthBarRect = c.Rectangle{
+            .x = self.position.x,
+            .y = self.position.y - 10,
+            .width = healthBarWidth,
+            .height = 5,
+        };
+        c.DrawRectangleRec(healthBarRect, c.GREEN);
     }
 
     pub fn handleJump(self: *Player) void {

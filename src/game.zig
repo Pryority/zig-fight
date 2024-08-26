@@ -84,7 +84,7 @@ export fn gameDraw(state_ptr: *anyopaque) void {
     const state = @as(*GameState, @ptrCast(@alignCast(state_ptr)));
     const envItems = state.envItems;
 
-    // state.camera.updateCenter();
+    state.camera.updateCenter();
 
     for (envItems) |envItem| {
         c.DrawRectangleRec(envItem.rect, envItem.color);

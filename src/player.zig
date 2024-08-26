@@ -4,11 +4,7 @@ const c = @cImport({
 });
 const Direction = @import("common.zig").Direction;
 const Hitbox = @import("common.zig").Hitbox;
-// const ATTACK_COOLDOWN = 0.25; // 500ms
-// const JUMP_SPEED = 1000.0;
 
-// const PLAYER_WIDTH = 20;
-// const PLAYER_HEIGHT = 60;
 pub const Player = struct {
     pub const WIDTH = 20;
     pub const HEIGHT = 60;
@@ -28,11 +24,11 @@ pub const Player = struct {
     pub fn init() Player {
         const SCREEN_CENTER_X = @as(f32, @floatFromInt(@divExact(c.GetScreenWidth(), 2)));
         const SCREEN_BOTTOM_CENTER_Y = @as(f32, @floatFromInt(@divExact(c.GetScreenHeight(), 2)));
-        const playerRect = c.Rectangle{ .x = SCREEN_CENTER_X, .y = SCREEN_BOTTOM_CENTER_Y, .width = WIDTH, .height = HEIGHT };
+        const rect = c.Rectangle{ .x = SCREEN_CENTER_X, .y = SCREEN_BOTTOM_CENTER_Y, .width = WIDTH, .height = HEIGHT };
 
         return Player{
             .position = c.Vector2{ .x = 40, .y = 40 },
-            .rect = playerRect,
+            .rect = rect,
             .speed = 0,
             .canJump = false,
             .canCrouch = false,
@@ -50,64 +46,64 @@ pub const Player = struct {
     }
 
     pub fn attack(self: *Player) void {
-        if (self.attackCooldown <= 0 and self.canAttack) {
-            self.canAttack = false;
-            self.attackCooldown = ATTACK_COOLDOWN;
+        // if (self.attackCooldown <= 0 and self.canAttack) {
+        // self.canAttack = false;
+        // self.attackCooldown = ATTACK_COOLDOWN;
 
-            switch (self.attackDirection) {
-                Direction.LEFT => {
-                    self.punchHitbox =
-                        Hitbox{
-                        .x = self.position.x - 50,
-                        .y = self.position.y,
-                        .width = 50,
-                        .height = self.rect.height,
-                    };
-                },
-                Direction.RIGHT => {
-                    self.punchHitbox =
-                        Hitbox{
-                        .x = self.position.x + self.rect.width,
-                        .y = self.position.y,
-                        .width = 50,
-                        .height = self.rect.height,
-                    };
-                },
-                Direction.UP => {
-                    self.punchHitbox =
-                        Hitbox{
-                        .x = self.position.x,
-                        .y = self.position.y - 50,
-                        .width = self.rect.width,
-                        .height = 50,
-                    };
-                },
-                Direction.DOWN => {
-                    self.punchHitbox =
-                        Hitbox{
-                        .x = self.position.x,
-                        .y = self.position.y + self.rect.height,
-                        .width = self.rect.width,
-                        .height = 50,
-                    };
-                },
-                else => {
-                    self.punchHitbox =
-                        Hitbox{
-                        .x = self.position.x - 25,
-                        .y = self.position.y - 25,
-                        .width = self.rect.width + 50,
-                        .height = self.rect.height + 50,
-                    };
-                },
-            }
-
-            c.DrawRectangleRec(self.punchHitbox, c.YELLOW);
-
-            if (self.attackCooldown <= 0) {
-                self.canAttack = true;
-            }
+        switch (self.attackDirection) {
+            Direction.LEFT => {
+                self.punchHitbox =
+                    Hitbox{
+                    .x = self.position.x - 50,
+                    .y = self.position.y,
+                    .width = 50,
+                    .height = self.rect.height,
+                };
+            },
+            Direction.RIGHT => {
+                self.punchHitbox =
+                    Hitbox{
+                    .x = self.position.x + self.rect.width,
+                    .y = self.position.y,
+                    .width = 50,
+                    .height = self.rect.height,
+                };
+            },
+            Direction.UP => {
+                self.punchHitbox =
+                    Hitbox{
+                    .x = self.position.x,
+                    .y = self.position.y - 50,
+                    .width = self.rect.width,
+                    .height = 50,
+                };
+            },
+            Direction.DOWN => {
+                self.punchHitbox =
+                    Hitbox{
+                    .x = self.position.x,
+                    .y = self.position.y + self.rect.height,
+                    .width = self.rect.width,
+                    .height = 50,
+                };
+            },
+            else => {
+                self.punchHitbox =
+                    Hitbox{
+                    .x = self.position.x - 25,
+                    .y = self.position.y - 25,
+                    .width = self.rect.width + 50,
+                    .height = self.rect.height + 50,
+                };
+            },
         }
+
+        c.DrawRectangleRec(self.punchHitbox, c.YELLOW);
+
+        // if (self.attackCooldown <= 0) {
+        //     self.canAttack = true;
+        // }
+        // }
     }
 
     pub fn move(self: *Player, pos: c.Vector2) void {
